@@ -1,0 +1,146 @@
+class LFUCache {
+    class ListNode{
+        ListNode prev;
+        ListNode next;
+        int val;
+        int key;
+        int freq;
+        ListNode(int key ,int val,int freq){
+            this.key = key;
+            this.val = val;
+            this.freq = freq;
+        }
+        void updateCounter(){
+            this.freq++;
+        }
+    }
+    class DoublyLinkedList {
+    //    
+    ListNode head;
+    ListNode last;
+    void addFirst(ListNode node) {
+        if (head == null) {
+            head = node;
+            last = node;
+            return;
+        }
+
+        head.prev = node;
+        node.next = head;
+        head = node;
+    }
+
+    void remove(ListNode node) {
+        if (node == head) {
+            head = node.next;
+        }
+        if (node == last) {
+            last = node.prev;
+        }
+        if (node.prev != null) {
+            node.prev.next = node.next;
+        }
+        if(node.next != null){
+            node.next.prev = node.prev;
+        }
+        node.prev = null;
+        node.next = null;
+    }
+
+    ListNode removeLast() {
+        if(last == null){
+            return null;
+        }
+        ListNode temp = last;
+        if(head == last){
+            head = null;
+            last = null;
+        }else{
+            last = last.prev;
+            last.next = null;
+            temp.prev = null;
+        }
+        return temp;
+    }
+
+    boolean isEmpty() {
+        return head == null;
+    }    
+    }
+
+    HashMap<Integer,ListNode> lfu;
+    HashMap<Integer,DoublyLinkedList> freqMap ;
+    int capacity;
+    int minFreq;
+    public LFUCache(int capacity) {
+        lfu = new HashMap();
+        freqMap = new HashMap();
+        minFreq = 0;
+        this.capacity = capacity;
+    }
+    
+    public int get(int key) {
+        if(lfu.containsKey(key)){
+            ListNode cur = lfu.get(key);
+            update(cur);
+            return cur.val;
+        }else{
+            return -1;
+        }
+    }
+    void update(ListNode cur){
+        int freq = cur.freq;
+        // remove the cur from older freqMap
+        DoublyLinkedList list = freqMap.get(freq);
+        list.remove(cur);
+        if(list.isEmpty()){
+            freqMap.remove(freq);
+            if(freq == minFreq) minFreq++;
+        }
+        cur.updateCounter();
+        // insert into new 
+        int newFreq = cur.freq;
+        if (!freqMap.containsKey(newFreq)) {
+            freqMap.put(newFreq, new DoublyLinkedList());
+        }
+        freqMap.get(newFreq).addFirst(cur);
+    }
+
+
+    public void put(int key, int value) {
+        if(capacity <=0) return;
+        if(lfu.containsKey(key)){
+            ListNode cur = lfu.get(key);
+            cur.val = value;
+            update(cur);
+            return;
+        }
+        
+        if(lfu.size() >= capacity){
+            evict();
+        }
+        ListNode newNode = new ListNode(key, value, 1);
+        if (!freqMap.containsKey(1)) {
+            freqMap.put(1, new DoublyLinkedList());
+        }
+        freqMap.get(1).addFirst(newNode);
+        lfu.put(key, newNode);
+        minFreq = 1;
+    }
+    public void evict(){
+        DoublyLinkedList list = freqMap.get(minFreq);
+        ListNode removed = list.removeLast();
+        lfu.remove(removed.key);
+        if (list.isEmpty()) {
+            freqMap.remove(minFreq);
+        }
+    }
+
+}
+
+/**
+ * Your LFUCache object will be instantiated and called as such:
+ * LFUCache obj = new LFUCache(capacity);
+ * int param_1 = obj.get(key);
+ * obj.put(key,value);
+ */
